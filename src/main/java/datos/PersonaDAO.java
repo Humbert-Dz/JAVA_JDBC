@@ -17,6 +17,16 @@ import static datos.Conexion.*;
  */
 public class PersonaDAO {
 
+    /**
+     * Esta propiedad servirá para tener una conexión activa a la base de datos
+     * ya que anteriormente en cada método (seleccionar, insertar, actualizar,
+     * eliminar) se abre y se cierra una conexión con la DB, para trabajar con
+     * transacciones debemos mantener una conexión siempre activa, ya que
+     * propiamente la transaccion permite ejecutar varias sentencias en grupo
+     * (como insertar, actualizar y eliminar)
+     */
+    private Connection conexionTransaccional;
+
     //constante que contiene sentencia para seleccionar todos los registros de la tabla
     private static final String SQL_SELECT = "SELECT * FROM persona";
 
@@ -29,12 +39,28 @@ public class PersonaDAO {
     //constante que contiene sentencia para eliminar un registro
     private static final String SQL_DELETE = "DELETE FROM persona WHERE ID = ?";
 
+    //Sobrecarga de constructores
+    /**
+     * Constructor vacío
+     */
+    public PersonaDAO() {
+    }
+
+    /**
+     * Constructor con parámetro que recibe una conexion a la base de datos
+     *
+     * @param conexionTransaccional conexion a la base de datos
+     */
+    public PersonaDAO(Connection conexionTransaccional) {
+        this.conexionTransaccional = conexionTransaccional;
+    }
+
     /**
      * Método para realizar un select
      *
      * @return Lista de tipo personas
      */
-    public List<Persona> seleccionar() {
+    public List<Persona> seleccionar() throws SQLException {
         Connection conexion = null;
         PreparedStatement sentencia = null;
         ResultSet resultado = null;
@@ -42,7 +68,8 @@ public class PersonaDAO {
         List<Persona> personas = new ArrayList<>();
 
         try {
-            conexion = Conexion.getConnection();
+            //Asignamos el atributo de tipo conexion en caso de que no sea nulo, si es nulo se asignará una conexion a través del método estático getConnection
+            conexion = (this.conexionTransaccional != null) ? this.conexionTransaccional : Conexion.getConnection();
             sentencia = conexion.prepareStatement(SQL_SELECT);
             resultado = sentencia.executeQuery();
 
@@ -59,12 +86,24 @@ public class PersonaDAO {
                 personas.add(persona);
             }
 
-        } catch (SQLException ex) {
-            ex.printStackTrace(System.out);
         } finally {
             Conexion.close(resultado);
             Conexion.close(sentencia);
-            Conexion.close(conexion);
+
+            /**
+             * si la conexión de la DB se recibió en el contructor y se realizó
+             * correctamente esto no se ejecuta, sin embargo, la conexión falló
+             * (usando el contructor con el parámetro) o el obj de PersonaDAO de
+             * hizo con el constructor vacío, la conexión se hizo a través del
+             * método getConnection() de la clase Conexion por lo que no es una
+             * conexion estable / activa siempre. por ello se cierra (da igual
+             * si se cierra ya que al no ser una conexion estable, esta nace y
+             * muere cuando se ejecuta el método seleccionar)
+             *
+             */
+            if (this.conexionTransaccional == null) {
+                Conexion.close(conexion);
+            }
         }
 
         return personas;
@@ -76,13 +115,14 @@ public class PersonaDAO {
      * @param persona persona a insertar
      * @return numero registros afectados
      */
-    public int insertar(Persona persona) {
+    public int insertar(Persona persona) throws SQLException {
         Connection conexion = null;
         PreparedStatement sentencia = null;
         int registros = 0;
 
         try {
-            conexion = Conexion.getConnection();
+            //Asignamos el atributo de tipo conexion en caso de que no sea nulo, si es nulo se asignará una conexion a través del método estático getConnection
+            conexion = (this.conexionTransaccional != null) ? this.conexionTransaccional : Conexion.getConnection();
             sentencia = conexion.prepareStatement(SQL_INSERT);
             sentencia.setString(1, persona.getNombre());
             sentencia.setString(2, persona.getApellido());
@@ -90,11 +130,11 @@ public class PersonaDAO {
             sentencia.setString(4, persona.getTelefono());
             registros = sentencia.executeUpdate();
 
-        } catch (SQLException ex) {
-            ex.printStackTrace(System.out);
         } finally {
             Conexion.close(sentencia);
-            Conexion.close(conexion);
+            if (this.conexionTransaccional == null) {
+                Conexion.close(conexion);
+            }
         }
 
         return registros;
@@ -106,13 +146,14 @@ public class PersonaDAO {
      * @param persona registro a actualizar
      * @return numero registros afectados
      */
-    public int actualizar(Persona persona) {
+    public int actualizar(Persona persona) throws SQLException {
         Connection conexion = null;
         PreparedStatement sentencia = null;
         int registros = 0;
 
         try {
-            conexion = Conexion.getConnection();
+            //Asignamos el atributo de tipo conexion en caso de que no sea nulo, si es nulo se asignará una conexion a través del método estático getConnection
+            conexion = (this.conexionTransaccional != null) ? this.conexionTransaccional : Conexion.getConnection();
             sentencia = conexion.prepareStatement(SQL_UPDATE);
             sentencia.setString(1, persona.getNombre());
             sentencia.setString(2, persona.getApellido());
@@ -121,37 +162,39 @@ public class PersonaDAO {
             sentencia.setInt(5, persona.getIdPersona());
             registros = sentencia.executeUpdate();
 
-        } catch (SQLException ex) {
-            ex.printStackTrace(System.out);
         } finally {
             Conexion.close(sentencia);
-            Conexion.close(conexion);
+            if (this.conexionTransaccional == null) {
+                Conexion.close(conexion);
+            }
         }
 
         return registros;
     }
 
     /**
+     * Método para eliminar un registro
      *
-     * @param persona
-     * @return
+     * @param persona registro a eliminar
+     * @return numero de registros afectados
      */
-    public static int eliminar(Persona persona) {
+    public int eliminar(Persona persona) throws SQLException {
         Connection conexion = null;
         PreparedStatement sentencia = null;
         int registros = 0;
 
         try {
-            conexion = Conexion.getConnection();
+            //Asignamos el atributo de tipo conexion en caso de que no sea nulo, si es nulo se asignará una conexion a través del método estático getConnection
+            conexion = this.conexionTransaccional != null ? this.conexionTransaccional : Conexion.getConnection();
             sentencia = conexion.prepareStatement(SQL_DELETE);
             sentencia.setInt(1, persona.getIdPersona());
             registros = sentencia.executeUpdate();
 
-        } catch (SQLException ex) {
-            ex.printStackTrace(System.out);
         } finally {
             Conexion.close(sentencia);
-            Conexion.close(conexion);
+            if (this.conexionTransaccional == null) {
+                Conexion.close(conexion);
+            }
         }
 
         return registros;
