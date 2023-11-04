@@ -13,6 +13,9 @@ import java.util.List;
  */
 public class UsuarioDAO {
 
+    //atributo de tipo Connection que permite conectar a la base de datos
+    private Connection conexion;
+
     //constante que contiene sentencia para seleccionar todos los registros de la tabla
     private static final String SQL_SELECT = "SELECT * FROM usuarios";
 
@@ -25,12 +28,27 @@ public class UsuarioDAO {
     //constante que contiene sentencia para eliminar un registro
     private static final String SQL_DELETE = "DELETE FROM usuarios WHERE ID = ?";
 
+    //constructor vacío
+    public UsuarioDAO() {
+    }
+
     /**
+     * Constructor con parámetro
+     *
+     * @param conexion conexión a la base de datos
+     */
+    public UsuarioDAO(Connection conexion) {
+        this.conexion = conexion;
+    }
+
+    /**
+     *
      * Método que recuperará los registros de la tabla usuarios
      *
      * @return lista con el resultado de la query
+     * @throws SQLException propagamos la posible excepción
      */
-    public List<Usuario> listar() {
+    public List<Usuario> listar() throws SQLException {
         Connection conexion = null;
         PreparedStatement sentencia = null;
         ResultSet resultado = null;
@@ -38,7 +56,8 @@ public class UsuarioDAO {
         List<Usuario> usuarios = new ArrayList<>();
 
         try {
-            conexion = Conexion.getConnection();
+            //evaluando como se hará la conexión a la base de datos
+            conexion = (this.conexion != null) ? this.conexion : Conexion.getConnection();
             sentencia = conexion.prepareStatement(SQL_SELECT);
             resultado = sentencia.executeQuery();
 
@@ -55,13 +74,13 @@ public class UsuarioDAO {
                 usuarios.add(usuario);
             }
 
-        } catch (SQLException ex) {
-            ex.printStackTrace(System.out);
         } finally {
             //cerramos los objetos
             Conexion.close(resultado);
             Conexion.close(sentencia);
-            Conexion.close(conexion);
+            if (this.conexion == null) {
+                Conexion.close(conexion);
+            }
 
         }
 
@@ -73,25 +92,28 @@ public class UsuarioDAO {
      *
      * @param usuario que será agregado como registro
      * @return numero de registros modificados
+     * @throws SQLException propagamos la posible excepción
      */
-    public static int agregar(Usuario usuario) {
+    public int agregar(Usuario usuario) throws SQLException {
         Connection conexion = null;
         PreparedStatement sentencia = null;
         int registros = 0;
 
         try {
-            conexion = Conexion.getConnection();
+            //evaluando como se hará la conexión a la base de datos
+            conexion = (this.conexion != null) ? this.conexion : Conexion.getConnection();
             sentencia = conexion.prepareStatement(SQL_INSERT);
             sentencia.setString(1, usuario.getUsuario());
             sentencia.setString(2, usuario.getContrasenia());
             registros = sentencia.executeUpdate();
 
-        } catch (SQLException ex) {
-            ex.printStackTrace(System.out);
         } finally {
             // cerramos los objetos
             Conexion.close(sentencia);
-            Conexion.close(conexion);
+            //si la conexión se hizo por el método estático getConnection de Conexion
+            if (this.conexion == null) {
+                Conexion.close(conexion);
+            }
         }
 
         return registros;
@@ -102,26 +124,29 @@ public class UsuarioDAO {
      *
      * @param usuario que será actualizado en el registro de la tabla
      * @return número de registros alterados
+     * @throws SQLException propagamos la posible excepción
      */
-    public static int actualizar(Usuario usuario) {
+    public int actualizar(Usuario usuario) throws SQLException {
         Connection conexion = null;
         PreparedStatement sentencia = null;
         int registros = 0;
 
         try {
-            conexion = Conexion.getConnection();
+            //evaluando como se hará la conexión a la base de datos
+            conexion = (this.conexion != null) ? this.conexion : Conexion.getConnection();
             sentencia = conexion.prepareStatement(SQL_UPDATE);
             sentencia.setString(1, usuario.getUsuario());
             sentencia.setString(2, usuario.getContrasenia());
             sentencia.setInt(3, usuario.getId());
             registros = sentencia.executeUpdate();
 
-        } catch (SQLException ex) {
-            ex.printStackTrace(System.out);
         } finally {
             // cerramos los objetos
             Conexion.close(sentencia);
-            Conexion.close(conexion);
+            //si la conexión se hizo por el método estático getConnection de Conexion
+            if (this.conexion == null) {
+                Conexion.close(conexion);
+            }
         }
 
         return registros;
@@ -132,24 +157,27 @@ public class UsuarioDAO {
      *
      * @param usuario que será eliminado
      * @return número de registros alterados
+     * @throws SQLException propagamos la posible excepción
      */
-    public static int eliminar(Usuario usuario) {
+    public int eliminar(Usuario usuario) throws SQLException {
         Connection conexion = null;
         PreparedStatement sentencia = null;
         int registros = 0;
 
         try {
-            conexion = Conexion.getConnection();
+            //evaluando como se hará la conexión a la base de datos
+            conexion = (this.conexion != null) ? this.conexion : Conexion.getConnection();
             sentencia = conexion.prepareStatement(SQL_DELETE);
             sentencia.setInt(1, usuario.getId());
             registros = sentencia.executeUpdate();
 
-        } catch (SQLException ex) {
-            ex.printStackTrace(System.out);
         } finally {
             // cerramos los objetos
             Conexion.close(sentencia);
-            Conexion.close(conexion);
+            //si la conexión se hizo por el método estático getConnection de Conexion
+            if (this.conexion == null) {
+                Conexion.close(conexion);
+            }
         }
 
         return registros;
